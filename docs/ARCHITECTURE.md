@@ -96,6 +96,51 @@ Maintainer check flow (two-tier: org, then optionally team):
 
 Non-maintainers hitting `/dashboard` are redirected to `/register?error=maintainer`.
 
+### Read-only GraphQL (`POST /api/graphql`)
+
+The endpoint exposes two query fields:
+
+- `stats` returns the same aggregate `totalContributors`, `readyCount`, and
+  `readyPercent` data as `GET /api/stats`; it remains publicly readable.
+- `contributors(first, after)` returns a cursor-paginated `nodes` page,
+  `hasMore`, and `nextCursor`. It requires the same maintainer session as
+  `GET /api/contributors/paginated`. `first` defaults to 25 and is limited to
+  1–100.
+
+The schema is intentionally allow-listed and read-only. It exposes no user
+tokens, wallet-proof data, or Horizon debug payloads, and it defines no
+mutation or subscription operation. Production requests cannot use schema
+introspection.
+
+Requests are JSON POST bodies with a `query` string and optional `variables`.
+The endpoint rejects bodies over 16 KiB, queries deeper than 5 fields, queries
+with more than 100 selected fields, and queries with a weighted cost over 2,500
+(each selected contributor field costs one unit per requested row). These
+limits are checked before resolver execution.
+Requests are also limited to 120 per minute per client IP, matching the public
+stats REST endpoint.
+
+Example:
+
+```graphql
+query ContributorRead($first: Int!, $after: String) {
+  stats {
+    totalContributors
+    readyCount
+    readyPercent
+  }
+  contributors(first: $first, after: $after) {
+    nodes {
+      githubUsername
+      stellarAddress
+      readiness
+    }
+    hasMore
+    nextCursor
+  }
+}
+```
+
 ---
 
 ## Data model
