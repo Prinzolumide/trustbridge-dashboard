@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { NetworkStatusPanel } from "@/components/NetworkStatusPanel";
 import { SessionPanel } from "@/components/SessionPanel";
+import { ApiKeyPanel } from "@/components/ApiKeyPanel";
 import {
   Card,
   CardContent,
@@ -115,6 +116,10 @@ export default function MaintainerSettingsPage() {
         ) : null}
       </div>
 
+      <div className="mb-8">
+        <ApiKeyPanel />
+      </div>
+
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>GitHub org webhook replay</CardTitle>
@@ -171,6 +176,10 @@ export default function MaintainerSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="mb-8">
+        <RestorePanel />
+      </div>
 
       <Card>
         <CardHeader>

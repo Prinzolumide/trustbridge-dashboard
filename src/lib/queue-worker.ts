@@ -12,8 +12,9 @@ import {
 backgroundQueue.registerHandler("recheck.batch", async (job: Job) => {
   const startTime = Date.now();
 
-  const refreshed = await refreshAllContributors();
-  const { contributors } = await getContributors();
+  try {
+    const refreshed = await refreshAllContributors();
+    const { contributors } = await getContributors();
 
     job.result = {
       refreshed: refreshed.refreshed,

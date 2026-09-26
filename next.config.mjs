@@ -1,18 +1,20 @@
 /** @type {import('next').NextConfig} */
 
 /**
- * Allowed origins for CORS on public API endpoints.
+ * Allowed origin for CORS on public API endpoints.
+ *
+ * The W3C CORS specification (and browser implementations) requires
+ * Access-Control-Allow-Origin to contain either a single origin or "*".
+ * Multiple origins cannot be joined with commas in this header.
  *
  * The trustbridge-action runs server-side (Node.js fetch), so CORS does not
- * apply to it. We still lock down the origin list defensively in case a
- * browser-based tool (Swagger UI, custom script) calls these endpoints.
+ * apply to it. We set the primary trusted origin statically in Next config
+ * headers. For dynamic multi-origin reflection across multiple domains,
+ * origin validation can be handled dynamically in middleware or route handlers.
  *
- * To add a new origin, append it to ALLOWED_ORIGINS below.
+ * Default trusted origin: "https://github.com"
  */
-const ALLOWED_ORIGINS = [
-  "https://github.com",
-  "https://github.io",
-];
+const ALLOWED_ORIGIN = "https://github.com";
 
 /** Paths that receive CORS headers (public, no-auth endpoints). */
 const CORS_PATHS = ["/api/actions/lookup", "/api/check"];
@@ -59,7 +61,7 @@ const nextConfig = {
  * Build CORS headers for a single path.
  *
  * Policy:
- * - Only origins in ALLOWED_ORIGINS may use credentials.
+ * - Reflect single trusted origin ALLOWED_ORIGIN (browsers reject comma-separated origin lists).
  * - No wildcard (*) with credentials.
  * - Methods: GET, POST, OPTIONS (preflight).
  * - The Action is server-side — CORS headers are defensive, not functional.
@@ -68,7 +70,7 @@ function buildCorsHeaders() {
   return [
     {
       key: "Access-Control-Allow-Origin",
-      value: ALLOWED_ORIGINS.join(", "),
+      value: ALLOWED_ORIGIN,
     },
     {
       key: "Access-Control-Allow-Methods",

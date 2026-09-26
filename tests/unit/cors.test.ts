@@ -38,15 +38,15 @@ describe("CORS Policy", () => {
     }
   });
 
-  it("allows specific origins only", async () => {
+  it("allows single specific origin only without comma separation", async () => {
     const headers = await nextConfig.headers();
     const lookupRule = headers.find((h) => h.source === "/api/actions/lookup");
     const originHeader = lookupRule!.headers.find(
       (h) => h.key === "Access-Control-Allow-Origin"
     );
 
-    expect(originHeader!.value).toContain("https://github.com");
-    expect(originHeader!.value).toContain("https://github.io");
+    expect(originHeader!.value).toBe("https://github.com");
+    expect(originHeader!.value).not.toContain(",");
   });
 
   it("does not include credentials header (no cookies needed)", async () => {

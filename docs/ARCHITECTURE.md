@@ -378,7 +378,7 @@ CORS headers are applied via `next.config.mjs` → `headers()`:
 
 | Header | Value |
 |--------|-------|
-| `Access-Control-Allow-Origin` | `https://github.com, https://github.io` |
+| `Access-Control-Allow-Origin` | `https://github.com` |
 | `Access-Control-Allow-Methods` | `GET, POST, OPTIONS` |
 | `Access-Control-Allow-Headers` | `Content-Type, Authorization, X-Cache-Bypass` |
 | `Access-Control-Max-Age` | `86400` (24 hours) |
@@ -386,10 +386,11 @@ CORS headers are applied via `next.config.mjs` → `headers()`:
 
 ### Security constraints
 
-- **No wildcard (`*`) with credentials.** The allowed origins are explicitly listed.
+- **Single origin, no multi-value lists.** The CORS specification requires `Access-Control-Allow-Origin` to specify either a single origin or `*`. Browsers reject comma-separated origin lists. Next.js statically sets `ALLOWED_ORIGIN`. Dynamic origin checking across multiple domains can be handled dynamically in middleware or route handlers if needed.
+- **No wildcard (`*`) with credentials.** The allowed origin is explicitly specified.
 - **Default deny.** Only the two paths above receive CORS headers. Authenticated endpoints (`/api/register`, `/api/contributors`, `/api/stats`) are same-origin only.
 - **No credentials header.** `Access-Control-Allow-Credentials` is intentionally omitted — these endpoints don't use cookies.
-- **To add a new origin**, append it to `ALLOWED_ORIGINS` in `next.config.mjs`.
+- **To configure the allowed origin**, update `ALLOWED_ORIGIN` in `next.config.mjs`.
 
 ### Tests
 

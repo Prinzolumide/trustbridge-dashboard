@@ -6,7 +6,7 @@ import {
   getMaintenanceMessage,
   shouldBlockForMaintenance,
 } from "@/lib/maintenance";
-import { generateRequestId, extractRequestId } from "@/lib/request-id";
+import { extractRequestId, generateRequestId } from "@/lib/request-id";
 
 /**
  * RBAC path rules (default deny):
@@ -19,6 +19,10 @@ import { generateRequestId, extractRequestId } from "@/lib/request-id";
  */
 export default withAuth(
   function middleware(req) {
+    const requestId = extractRequestId(req.headers) ?? generateRequestId();
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-request-id", requestId);
+
     const token = req.nextauth.token;
     const isMaintainer = token?.isMaintainer;
     // Maintainers without an explicit role default to "viewer" per the RBAC
@@ -43,10 +47,12 @@ export default withAuth(
     // migration, and a blocked client retrying would amplify writes against a
     // database that may be mid-deploy. The 503 response is the signal.
     if (shouldBlockForMaintenance(req.method, path)) {
-      return NextResponse.json(
+      const maintenanceResponse = NextResponse.json(
         { error: "maintenance_mode", message: getMaintenanceMessage() },
         { status: 503, headers: { "Retry-After": "120" } }
       );
+      maintenanceResponse.headers.set("x-request-id", requestId);
+      return maintenanceResponse;
     }
 
     // /dashboard requires viewer+
