@@ -143,8 +143,52 @@ Open a [GitHub Discussion](https://github.com/your-org/trustbridge-dashboard/dis
 
 ---
 
+## Data retention and deletion policy
+
+Contributors can export and delete their own registration data via the
+self-service API endpoints:
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/register/export` | `GET` | Download your registration, address history and public profile fields as JSON. |
+| `/api/register/delete` | `POST` | Soft-delete your active registration (send `{ "confirm": true }`). |
+
+### What is deleted on request
+
+- **Registration record** — soft-deleted (`deletedAt` set). The Stellar address
+  is immediately freed by the partial unique index and can be re-registered by
+  you or another contributor.
+- **OAuth tokens** — `access_token` and `refresh_token` in the `Account` table
+  are cleared. The in-memory JWT session expires naturally (see
+  [docs/SESSIONS.md](./SESSIONS.md)); nothing can invalidate it earlier.
+
+### What is NOT deleted (and why)
+
+- **Audit log entries** (`AuditLog` table) — these exist to investigate fraud,
+  abuse, and payment disputes and are security-purpose records. They must be
+  retained regardless of individual deletion requests. Entries reference the
+  actor by user ID and GitHub login at the time of the action; the user record
+  itself is also retained for foreign-key integrity with these logs.
+- **Address history** (`AddressHistoryRecord` table) — retained for dispute
+  resolution. The data is limited to Stellar G-addresses, which are already
+  public on the Stellar ledger.
+
+### What is NOT exported (and why)
+
+- **Encrypted access token** — returning ciphertext would be meaningless and
+  returning plaintext would be a credential leak. Neither is included.
+- **Security audit logs** — logs contain other actors' actions that reference
+  this user as a target; exporting them in full would leak information about
+  those actors.
+- **Session rows** — never written in JWT mode (see [docs/SESSIONS.md](./SESSIONS.md)).
+
+All mutating endpoints enforce CSRF same-origin protection via `assertSameOrigin`.
+
+---
+
 ## Related docs
 
 - [Architecture](./ARCHITECTURE.md)
 - [Project structure](./PROJECT_STRUCTURE.md)
 - [Environment variables](./ENVIRONMENT.md)
+- [Sessions](./SESSIONS.md)

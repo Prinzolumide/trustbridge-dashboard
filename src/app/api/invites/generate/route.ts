@@ -1,8 +1,7 @@
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
-import { authOptions } from "@/lib/auth";
 import { recordAuditLog } from "@/lib/audit";
+import { requireAdmin } from "@/lib/api-auth";
 import { assertSameOrigin } from "@/lib/csrf";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import {
@@ -29,9 +28,8 @@ export async function POST(request: NextRequest) {
   const csrf = assertSameOrigin(request);
   if (csrf) return csrf;
 
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.isMaintainer) {
+  const session = await requireAdmin("invites.generate");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -99,9 +97,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.isMaintainer) {
+  const session = await requireAdmin("invites.list");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -131,9 +128,8 @@ export async function DELETE(request: NextRequest) {
   const csrf = assertSameOrigin(request);
   if (csrf) return csrf;
 
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.isMaintainer) {
+  const session = await requireAdmin("invites.delete");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

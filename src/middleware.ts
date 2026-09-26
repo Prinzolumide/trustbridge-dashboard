@@ -6,6 +6,7 @@ import {
   getMaintenanceMessage,
   shouldBlockForMaintenance,
 } from "@/lib/maintenance";
+import { generateRequestId, extractRequestId } from "@/lib/request-id";
 
 /**
  * RBAC path rules (default deny):
@@ -20,8 +21,18 @@ export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const isMaintainer = token?.isMaintainer;
+    // Maintainers without an explicit role default to "viewer" per the RBAC
+    // hierarchy defined in src/lib/api-auth.ts.
     const role = (token?.role as string | undefined) ?? (isMaintainer ? "viewer" : undefined);
     const path = req.nextUrl.pathname;
+
+    // Propagate or generate a request ID for distributed tracing.
+    // Incoming `x-request-id` is trusted only when it is a valid UUID v4;
+    // any other value is replaced with a fresh one.
+    const requestId =
+      extractRequestId(req.headers) ?? generateRequestId();
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-request-id", requestId);
 
     // Maintenance mode (issue #202): during a deploy, mutating API requests are
     // rejected with a 503 while reads stay up. `/api/auth`, `/api/webhooks` and
@@ -62,22 +73,21 @@ export default withAuth(
       }
     }
 
-    // /api/invites requires admin
+    // /api/invites is admin-only. A single, explicit check replaces the
+    // previous nested condition which was logically equivalent to "always
+    // block unless role === admin" but was much harder to read.
     if (path.startsWith("/api/invites")) {
-      if (!isMaintainer || (role !== "admin" && role !== undefined)) {
-        // Only admin can access invites
-        if (role !== "admin") {
-          recordAuditLog({
-            action: "rbac_middleware_denied",
-            metadata: { path, requiredRole: "admin", actualRole: role },
-          }).catch(() => {});
-          const forbiddenResponse = NextResponse.json(
-            { error: "Forbidden" },
-            { status: 403 }
-          );
-          forbiddenResponse.headers.set("x-request-id", requestId);
-          return forbiddenResponse;
-        }
+      if (role !== "admin") {
+        recordAuditLog({
+          action: "rbac_middleware_denied",
+          metadata: { path, requiredRole: "admin", actualRole: role ?? null },
+        }).catch(() => {});
+        const forbiddenResponse = NextResponse.json(
+          { error: "Forbidden" },
+          { status: 403 }
+        );
+        forbiddenResponse.headers.set("x-request-id", requestId);
+        return forbiddenResponse;
       }
     }
 
