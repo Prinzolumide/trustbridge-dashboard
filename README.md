@@ -840,5 +840,8 @@ Implement immediate access revocation when a GitHub organization member is remov
 
 ## Handsoff notes
 
-<!-- handsoff-issue-404 -->
-- #404: Add E2E test for signed `/api/badge/[username]` SVG endpoint
+<!-- handsoff-issue-394 -->
+- #394: Document ALLOWED_MAINTAINER_ORGS in ENVIRONMENT.md
+
+<!-- handsoff-issue-395 -->
+- #395: Apply verifyTenantAccess when filtering maintainerOrgId queries
